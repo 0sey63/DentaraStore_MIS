@@ -1,8 +1,16 @@
 <?php
 error_reporting(E_ALL);
 ini_set("display_errors", 1);
+
 session_start();
 include "db.php";
+
+// تحميل مكتبة PHPMailer
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\Exception;
+require 'PHPMailer/src/Exception.php';
+require 'PHPMailer/src/PHPMailer.php';
+require 'PHPMailer/src/SMTP.php';
 
 // تحقق من تسجيل دخول المستخدم
 if (!isset($_SESSION['UserID']) || $_SESSION['role'] !== 'Customer') {
@@ -10,8 +18,9 @@ if (!isset($_SESSION['UserID']) || $_SESSION['role'] !== 'Customer') {
     exit;
 }
 
-$userid = $_SESSION['UserID'];
+$userid   = $_SESSION['UserID'];
 $fullname = $_SESSION['FullName'];
+$email    = $_SESSION['Email']; // ✅ تم تعديلها لتطابق index.php
 
 // جلب محتويات السلة
 $cart = [];
@@ -135,11 +144,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['confirm_order'])) {
 
             $conn->commit(); // اعتماد المعاملة
 
+            // ✅ إرسال ايميل عبر PHPMailer
+            $mail = new PHPMailer(true);
+            try {
+                $mail->isSMTP();
+                $mail->Host       = 'smtp.gmail.com';
+                $mail->SMTPAuth   = true;
+                $mail->Username   = 'aldubai16osama@gmail.com'; // ضع ايميلك هنا
+                $mail->Password   = 'tcna czam ktuk yvoc';    // ضع App Password هنا
+                $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+                $mail->Port       = 587;
+
+                $mail->setFrom('aldubai16osama@gmail.com', 'Dentara Store');
+                $mail->addAddress($email, $fullname);
+
+                $mail->isHTML(true);
+                $mail->Subject = "Order Confirmation - Dentara Store";
+                $mail->Body    = "
+                    Dear $fullname,<br><br>
+                    Thank you for your order!<br>
+                    <b>Order ID:</b> #$orderID<br>
+                    <b>Total Amount:</b> YER " . number_format($totalPrice, 2) . "<br><br>
+                    Please transfer the amount to our wallet number: <b>775663444</b><br><br>
+                    Best regards,<br>
+                    Dentara Store
+                ";
+
+                $mail->send();
+            } catch (Exception $e) {
+                $errorMsg = "Order confirmed, but email could not be sent. Error: {$mail->ErrorInfo}";
+            }
+
             $successMsg = "Thank you for ordering from our store!<br>
                            Your Order ID: #$orderID<br>
-                           Total Amount: $" . number_format($totalPrice, 2);
+                           Total Amount: YER " . number_format($totalPrice, 2) . "<br>
+                           Please transfer to wallet: <b>775663444</b>";
         } catch (Exception $e) {
-            $conn->rollback(); // إلغاء كل العمليات إذا صار خطأ
+            $conn->rollback();
             $errorMsg = $e->getMessage();
         }
     } else {
@@ -156,7 +197,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_qty'])) {
         $stmtUpdate->execute();
         $stmtUpdate->close();
     }
-    header("Refresh:0"); // إعادة تحميل الصفحة لتحديث الإجمالي
+    header("Refresh:0");
     exit;
 }
 ?>

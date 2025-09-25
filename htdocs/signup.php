@@ -5,6 +5,14 @@ ini_set("display_errors", 1);
 session_start();
 include "db.php";
 
+// استدعاء PHPMailer
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\Exception;
+
+require 'PHPMailer/src/Exception.php';
+require 'PHPMailer/src/PHPMailer.php';
+require 'PHPMailer/src/SMTP.php';
+
 $error = '';
 $success = '';
 
@@ -52,16 +60,45 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 $stmt2->bind_param("issss", $user_id, $fullname, $gender, $phone, $address);
 
                 if ($stmt2->execute()) {
-                    // Set session variables
-                    $_SESSION["UserID"] = $user_id;
-                    $_SESSION["FullName"] = $fullname;
-                    $_SESSION["email"] = $email;
-                    $_SESSION["role"] = 'Customer';
+                    // إرسال ايميل باستخدام PHPMailer
+                    $mail = new PHPMailer(true);
 
-                    $success = "Account created successfully!";
-                    // Redirect to index.php
-                    header("Location: index.php");
-                    exit();
+                    try {
+                        // إعدادات السيرفر
+                        $mail->isSMTP();
+                        $mail->Host       = 'smtp.gmail.com';
+                        $mail->SMTPAuth   = true;
+                        $mail->Username   = 'aldubai16osama@gmail.com'; // ✨ ضع ايميلك
+                        $mail->Password   = 'tcna czam ktuk yvoc';   // ✨ ضع App Password من Gmail
+                        $mail->SMTPSecure = 'tls';
+                        $mail->Port       = 587;
+
+                        // المستلم والمرسل
+                        $mail->setFrom('aldubai16osama@gmail.com', 'Dentara Store');
+                        $mail->addAddress($email, $fullname);
+
+                        // المحتوى
+                        $mail->isHTML(true);
+                        $mail->Subject = "Registration Process";
+                        $mail->Body    = "Dear $fullname,<br><br>
+                                          You have been successfully registered in Dentara Store.<br><br>
+                                          Best regards,<br>Dentara Team";
+
+                        $mail->send();
+
+                        $success = "Account created successfully! We sent a confirmation email to verify your address.";
+
+                        // تخزين بيانات الجلسة
+                        $_SESSION["UserID"] = $user_id;
+                        $_SESSION["FullName"] = $fullname;
+                        $_SESSION["email"] = $email;
+                        $_SESSION["role"] = 'Customer';
+
+                        header("Location: index.php");
+                        exit();
+                    } catch (Exception $e) {
+                        $error = "Account created, but the email could not be sent. Mailer Error: {$mail->ErrorInfo}";
+                    }
                 } else {
                     $error = "Error creating user details. Please try again.";
                 }
@@ -76,16 +113,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 }
 ?>
 
-
-
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <title>Customer Signup - Dentara</title>
     <link rel="stylesheet" href="style.css">
-   
 </head>
 <body>
     <div class="container">
@@ -99,6 +132,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             
             <?php if (!empty($error)): ?>
                 <div class="error"><?php echo $error; ?></div>
+            <?php endif; ?>
+            
+            <?php if (!empty($success)): ?>
+                <div class="success"><?php echo $success; ?></div>
             <?php endif; ?>
             
             <form method="POST" action="">

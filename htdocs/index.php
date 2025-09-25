@@ -1,4 +1,3 @@
-
 <?php
 error_reporting(E_ALL);
 ini_set("display_errors", 1);
@@ -6,7 +5,6 @@ ini_set("display_errors", 1);
 session_start();
 include "db.php"; // ملف الاتصال بقاعدة البيانات
 $error = "";
-
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $email = trim($_POST['email']);
@@ -16,7 +14,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         // تشفير كلمة المرور باستخدام SHA256 مثل C#
         $hashedPassword = hash('sha256', $password);
 
-        // Prepared statement للبحث عن Customer فقط
+        // البحث عن مستخدم Customer فقط
         $stmt = $conn->prepare("
             SELECT u.UserID, ud.FullName
             FROM users u
@@ -38,10 +36,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
         if ($result->num_rows > 0) {
             $user = $result->fetch_assoc();
-            $_SESSION["UserID"] = $user['UserID'];
+            // ✅ تخزين البيانات في الجلسة
+            $_SESSION["UserID"]   = $user['UserID'];
             $_SESSION["FullName"] = $user['FullName'];
-            $_SESSION["email"] = $email;
-            $_SESSION["role"] = 'Customer';
+            $_SESSION["Email"]    = $email;  // ✅ لاحظ أن Email بحرف كبير
+            $_SESSION["role"]     = 'Customer';
+
             header("Location: dashboard.php");
             exit;
         } else {
@@ -74,6 +74,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         <input type="password" name="password" placeholder="Password" required><br>
         <button type="submit">Login</button>
         <p><a href="signup.php">Sign Up</a></p>
+        <p><a href="forgot_password.php">Forgot Password?</a></p> 
     </form>
 </div>
 </body>
